@@ -6,6 +6,8 @@ export interface IPost extends Document {
   likesCount: number;
   likes: mongoose.Schema.Types.ObjectId[];
   commentsCount: number;
+  image: string;
+  communityId?: mongoose.Schema.Types.ObjectId;
 }
 
 const postSchema = new mongoose.Schema<IPost>(
@@ -19,6 +21,10 @@ const postSchema = new mongoose.Schema<IPost>(
       type: mongoose.Schema.Types.ObjectId,
       required: true,
     },
+    image: {
+      type: String,
+      default: "",
+    },
     likesCount: {
       type: Number,
       default: 0,
@@ -30,6 +36,9 @@ const postSchema = new mongoose.Schema<IPost>(
     commentsCount: {
       type: Number,
       default: 0,
+    },
+    communityId: {
+      type: mongoose.Schema.Types.ObjectId,
     },
   },
   { timestamps: true }

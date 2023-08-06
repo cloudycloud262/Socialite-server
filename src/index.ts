@@ -16,6 +16,7 @@ import postRouter from "./routes/postRouter.js";
 import commentRouter from "./routes/commentRouter.js";
 import notificationRouter from "./routes/notificationRouter.js";
 import chatRouter from "./routes/chatRouter.js";
+import communityRouter from "./routes/communityRouter.js";
 
 dotenv.config();
 const app = express();
@@ -46,6 +47,7 @@ app.use("/user", userRouter);
 app.use("/post", postRouter);
 app.use("/chat", chatRouter);
 app.use("/comment", commentRouter);
+app.use("/community", communityRouter);
 app.use("/notification", notificationRouter);
 
 const CONNECTION_URL = process.env.DB_URI;

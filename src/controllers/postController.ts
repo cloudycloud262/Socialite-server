@@ -5,6 +5,7 @@ import Notification from "../models/Notification.js";
 import Comment from "../models/Comment.js";
 import { Request, Response } from "express";
 import mongoose from "mongoose";
+import Community from "../models/Community.js";
 
 // handle errors
 const handleErrors = (err: Record<string, any>) => {
@@ -39,6 +40,7 @@ export const getPosts = async (req: Request, res: Response) => {
     userId?: string | mongoose.Schema.Types.ObjectId[] | { $nin: string[] };
     page?: string;
     limit?: string;
+    communityId?: string;
   };
   let query: TQuery = req.query;
 
@@ -47,16 +49,31 @@ export const getPosts = async (req: Request, res: Response) => {
     let posts: IPostModel[] = [];
     if (query.userId) {
       posts = await Post.find(query).sort({ $natural: -1 });
-      const username = (await User.findById(query.userId).select("username"))
-        ?.username;
+      const user = await User.findById(query.userId).select(
+        "username displayPicture"
+      );
+      const communitySet = new Set();
+      posts.map((post) => {
+        communitySet.add(post.communityId);
+      });
+      const communityArr = Array.from(communitySet);
+      const communities = await Community.find({ _id: communityArr }).select(
+        "title"
+      );
+      const communitiesMap = new Map();
+      communities.forEach((community) => {
+        communitiesMap.set(String(community._id), community.title);
+      });
       posts = posts.map((post) => {
         const temp = post.toObject();
-        temp["username"] = username;
+        temp["username"] = user.username;
+        temp["displayPicture"] = user.displayPicture;
+        temp["communityTitle"] = communitiesMap.get(String(post.communityId));
         temp["isLiked"] = post.likes.includes(userId);
         delete temp.likes;
         return temp;
       });
-    } else if (query.page) {
+    } else if (query.page || query.communityId) {
       if (query.page === "home") {
         const user = await User.findById(userId).select("following");
         if (!user) {
@@ -93,18 +110,35 @@ export const getPosts = async (req: Request, res: Response) => {
         posts = await Post.find(query).sort({ $natural: -1 });
       }
       const userSet = new Set();
+      const communitySet = new Set();
       posts.map((post) => {
         userSet.add(post.userId);
+        communitySet.add(post.communityId);
       });
       const userArr = Array.from(userSet);
-      const users = await User.find({ _id: userArr }).select("username");
+      const users = await User.find({ _id: userArr }).select(
+        "username displayPicture"
+      );
+      const communityArr = Array.from(communitySet);
+      const communities = await Community.find({ _id: communityArr }).select(
+        "title"
+      );
       const usersMap = new Map();
       users.forEach((user) => {
-        usersMap.set(String(user._id), user.username);
+        usersMap.set(String(user._id), {
+          username: user.username,
+          dp: user.displayPicture,
+        });
+      });
+      const communitiesMap = new Map();
+      communities.forEach((community) => {
+        communitiesMap.set(String(community._id), community.title);
       });
       posts = posts.map((post) => {
         const temp = post.toObject();
-        temp["username"] = usersMap.get(String(post.userId));
+        temp["username"] = usersMap.get(String(post.userId)).username;
+        temp["displayPicture"] = usersMap.get(String(post.userId)).dp;
+        temp["communityTitle"] = communitiesMap.get(String(post.communityId));
         temp["isLiked"] = post.likes.includes(userId);
         delete temp.likes;
         return temp;
@@ -120,23 +154,28 @@ export const getPost = async (req: Request, res: Response) => {
   type TPost = Omit<IPostModel, "likes"> & {
     likes?: mongoose.Schema.Types.ObjectId[];
     username: string;
+    displayPicture: string;
     isLiked: boolean;
+    communityTitle: string;
   };
   const { id } = req.params;
 
   try {
     const userId = req.user || (await decodeJWT(req.cookies.jwt));
     const temp = await Post.findById(id);
+    const communityTitle = (await Community.findById(temp.communityId)).title;
     if (!temp) {
       return res.status(400).json("Post not found");
     }
-    const username = (await User.findById(temp.userId))?.username;
-    if (!username) {
+    const user = await User.findById(temp.userId);
+    if (!user) {
       return res.status(400).json("User not found");
     }
     const post: TPost = temp.toObject();
     post.isLiked = temp.likes.includes(userId);
-    post.username = username;
+    post.username = user.username;
+    post.communityTitle = communityTitle;
+    post.displayPicture = user.displayPicture;
     delete post.likes;
     res.status(200).json(post);
   } catch (e) {

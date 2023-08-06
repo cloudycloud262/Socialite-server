@@ -6,39 +6,39 @@ import { decodeJWT } from "./authController.js";
 import { Request, Response } from "express";
 
 export const getChats = async (req: Request, res: Response) => {
-  interface IChat extends IChatModel {
-    username?: string;
-    userId?: mongoose.Schema.Types.ObjectId;
-  }
   try {
     const userId = req.user || (await decodeJWT(req.cookies.jwt));
     let usersArr: mongoose.Schema.Types.ObjectId[] = [];
-    let chats: IChat[] = await Chat.find({ users: userId })
+    let chats: IChatModel[] = await Chat.find({ users: userId })
       .select("uuid users unreadCount lastMessageSenderId")
       .sort({
         lastMessageTime: -1,
       });
+    chats.forEach((chat) => {
+      usersArr.push(
+        String(chat.users[0]) === String(userId) ? chat.users[1] : chat.users[0]
+      );
+    });
+    const users: IUserModel[] = await User.find({ _id: usersArr }).select(
+      "username displayPicture"
+    );
+    const userMap = new Map();
+    users.forEach((user) => {
+      userMap.set(String(user._id), {
+        username: user.username,
+        dp: user.displayPicture,
+      });
+    });
     chats = chats.map((chat) => {
       const temp = chat.toObject();
-      temp.uuid = String(temp.uuid);
       temp.userId =
         String(chat.users[0]) === String(userId)
           ? chat.users[1]
           : chat.users[0];
-      usersArr.push(temp.userId);
+      temp.username = userMap.get(String(temp.userId)).username;
+      temp.displayPicture = userMap.get(String(temp.userId)).dp;
       delete temp.users;
       return temp;
-    });
-    const users: IUserModel[] = await User.find({ _id: usersArr }).select(
-      "username"
-    );
-    const userMap = new Map();
-    users.forEach((user) => {
-      userMap.set(String(user._id), user.username);
-    });
-    chats.map((chat) => {
-      chat.username = userMap.get(String(chat.userId));
-      return chat;
     });
     res.status(200).json(chats);
   } catch (e) {

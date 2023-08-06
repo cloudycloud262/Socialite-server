@@ -32,7 +32,7 @@ export const getUsers = async (req: Request, res: Response) => {
         await User.findById(userId).select("receivedReq")
       )?.receivedReq;
     }
-    const users = await User.find(query).select("username");
+    const users = await User.find(query).select("username displayPicture");
     res.status(200).json(users);
   } catch (e) {
     res.status(400).json(e);
@@ -52,9 +52,7 @@ export const getUser = async (req: Request, res: Response) => {
 
   try {
     const userId = req.user || (await decodeJWT(req.cookies.jwt));
-    const temp = await User.findById(id).select(
-      "username email followersCount followingCount followers isPrivate receivedReq postsCount"
-    );
+    const temp = await User.findById(id).select("-password");
     if (!temp) {
       return res.status(400).json("User not found");
     }

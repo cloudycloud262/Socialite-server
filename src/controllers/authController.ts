@@ -10,6 +10,7 @@ import Chat from "../models/Chat.js";
 import Notification from "../models/Notification.js";
 import Message from "../models/Message.js";
 import { Request, Response } from "express";
+import Community from "../models/Community.js";
 
 // handle errors
 const handleErrors = (err: Record<string, any>) => {
@@ -91,11 +92,7 @@ export const signup = async (req: Request, res: Response) => {
     `;
     await sendEmail({ email: user.email, subject: "Verify Email", text: url });
     const jwtToken = createToken(String(user._id));
-    res.cookie("jwt", jwtToken, {
-      httpOnly: true,
-      maxAge: maxAge * 1000,
-      secure: true,
-    });
+    res.cookie("jwt", jwtToken, { httpOnly: true, maxAge: maxAge * 1000 });
     res.status(200).json(user._id);
   } catch (err) {
     const errors = handleErrors(err as Record<string, any>);
@@ -114,11 +111,7 @@ export const verifyEmail = async (req: Request, res: Response) => {
     await User.findByIdAndUpdate(user._id, { isVerified: true });
     await EmailVerification.findByIdAndDelete(verificationObj._id);
     const jwtToken = createToken(String(user._id));
-    res.cookie("jwt", jwtToken, {
-      httpOnly: true,
-      maxAge: maxAge * 1000,
-      secure: true,
-    });
+    res.cookie("jwt", jwtToken, { httpOnly: true, maxAge: maxAge * 1000 });
     res.status(200).json(user._id);
   } catch (e) {
     res.status(400).json(e);
@@ -158,11 +151,7 @@ export const login = async (req: Request, res: Response) => {
   try {
     const userId = await User.login(email, password);
     const token = createToken(String(userId));
-    res.cookie("jwt", token, {
-      httpOnly: true,
-      maxAge: maxAge * 1000,
-      secure: true,
-    });
+    res.cookie("jwt", token, { httpOnly: true, maxAge: maxAge * 1000 });
     res.status(200).json(userId);
   } catch (err) {
     const errors = handleErrors(err as Record<string, any>);
@@ -202,7 +191,6 @@ export const getCurrentUser = async (req: Request, res: Response) => {
       res.status(400).json("User doesn't exist");
     }
   } catch (e) {
-    console.log(e);
     res.status(400).json(e);
   }
 };
@@ -274,6 +262,13 @@ export const deleteAccount = async (req: Request, res: Response) => {
     }
     const bool = await bcrypt.compare(currPassword, user.password);
     if (bool) {
+      const posts = await Post.find({ userId }).select("likes");
+      posts.forEach(async (post) => {
+        await User.updateMany(
+          { _id: post.likes },
+          { $pull: { likes: post._id } }
+        );
+      });
       await Post.deleteMany({ userId });
       await Post.updateMany(
         { _id: user.likes },
@@ -286,6 +281,19 @@ export const deleteAccount = async (req: Request, res: Response) => {
       await Notification.deleteMany({
         $or: [{ senderId: userId }, { receiverId: userId }],
       });
+      const communities = await Community.find({ creatorId: userId }).select(
+        "followers"
+      );
+      communities.forEach(async (community) => {
+        await User.updateMany(
+          { _id: community.followers },
+          {
+            $pull: { followingComm: community._id },
+            $inc: { followingCommCount: -1 },
+          }
+        );
+      });
+      await Community.deleteMany({ creatorId: userId });
       await User.updateMany(
         { _id: user.followers },
         { $pull: { following: userId }, $inc: { followingCount: -1 } }

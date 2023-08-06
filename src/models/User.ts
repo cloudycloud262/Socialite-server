@@ -10,14 +10,19 @@ export interface IUser {
   hasPassword: boolean;
   followers: mongoose.Schema.Types.ObjectId[];
   following: mongoose.Schema.Types.ObjectId[];
+  followingComm: mongoose.Schema.Types.ObjectId[];
+  followingCommCount: number;
   followersCount: number;
   followingCount: number;
+  communityCount: number;
   likes: mongoose.Schema.Types.ObjectId[];
   postsCount: number;
   receivedReq: mongoose.Schema.Types.ObjectId[];
   sentReq: mongoose.Schema.Types.ObjectId[];
   isPrivate: boolean;
   nfReadTime: Date;
+  displayPicture: string;
+  coverPicture: string;
 }
 
 interface TUserModel extends Model<IUser> {
@@ -68,10 +73,13 @@ const userSchema = new mongoose.Schema<IUser>(
       type: Boolean,
       required: [true, "Please enter hasPassword"],
     },
+    followingComm: { type: [mongoose.Schema.Types.ObjectId], default: [] },
     followers: { type: [mongoose.Schema.Types.ObjectId], default: [] },
     following: { type: [mongoose.Schema.Types.ObjectId], default: [] },
+    followingCommCount: { type: Number, default: 0 },
     followersCount: { type: Number, default: 0 },
     followingCount: { type: Number, default: 0 },
+    communityCount: { type: Number, default: 0 },
     likes: {
       type: [mongoose.Schema.Types.ObjectId],
       default: [],
@@ -94,6 +102,15 @@ const userSchema = new mongoose.Schema<IUser>(
     },
     nfReadTime: {
       type: Date,
+      default: Date.now(),
+    },
+    displayPicture: {
+      type: String,
+      default: "",
+    },
+    coverPicture: {
+      type: String,
+      default: "",
     },
   },
   { timestamps: true }

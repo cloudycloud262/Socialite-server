@@ -12,7 +12,7 @@ const commentSchema = new mongoose.Schema<IComment>(
     body: {
       type: String,
       required: [true, "Please write something before posting"],
-      maxlength: [400, "Maximum Comment length is 100 characters"],
+      maxlength: [400, "Maximum Comment length is 400 characters"],
     },
     userId: {
       type: String,

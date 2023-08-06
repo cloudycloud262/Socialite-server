@@ -31,14 +31,20 @@ export const getComments = async (req: Request, res: Response) => {
       usersSet.add(c.userId);
     });
     const usersArr = Array.from(usersSet);
-    const users = await User.find({ _id: usersArr }).select("username");
+    const users = await User.find({ _id: usersArr }).select(
+      "username displayPicture"
+    );
     const usersMap = new Map();
     users.forEach((user) => {
-      usersMap.set(String(user._id), user.username);
+      usersMap.set(String(user._id), {
+        username: user.username,
+        dp: user.displayPicture,
+      });
     });
     comments = comments.map((c) => {
       const temp = c.toObject();
-      temp.username = usersMap.get(c.userId);
+      temp.username = usersMap.get(c.userId).username;
+      temp.displayPicture = usersMap.get(c.userId).dp;
       return temp;
     });
     res.status(200).json(comments);
