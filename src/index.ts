@@ -6,7 +6,7 @@ import { Server } from "socket.io";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import dotenv from "dotenv";
-import cookieSession from "cookie-session";
+import session from "express-session";
 import passport from "passport";
 import "./services/passport.js";
 
@@ -34,11 +34,15 @@ app.use(cors({ origin: process.env.FRONTEND_URL, credentials: true }));
 app.use(cookieParser());
 app.set("trust-proxy", 1);
 app.use(
-  cookieSession({
-    maxAge: 3 * 24 * 60 * 60 * 1000,
-    keys: [process.env.SECRET_KEY || ""],
-    name: "oauth",
-    sameSite: "none",
+  session({
+    secret: process.env.SECRET_KEY,
+    resave: true,
+    saveUninitialized: true,
+    cookie: {
+      sameSite: "none",
+      secure: true,
+      maxAge: 3 * 24 * 60 * 60 * 1000,
+    },
   })
 );
 
