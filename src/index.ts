@@ -38,8 +38,10 @@ app.use(
     maxAge: 3 * 24 * 60 * 60 * 1000,
     keys: [process.env.SECRET_KEY || ""],
     name: "oauth",
+    sameSite: "none",
   })
 );
+
 app.use(passport.initialize());
 app.use(passport.session());
 
