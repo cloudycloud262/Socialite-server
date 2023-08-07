@@ -12,8 +12,7 @@ passport.use(
     {
       clientID: process.env.GOOGLE_CLIENT_ID || "",
       clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
-      callbackURL: `${process.env.FRONTEND_URL}/api/auth/google/callback`,
-      proxy: true,
+      callbackURL: `${process.env.BASE_URL}/auth/google/callback`,
     },
     async function (_accessToken, _refreshToken, profile, cb) {
       let user = await User.findOne({ email: profile._json.email });
