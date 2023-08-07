@@ -32,6 +32,7 @@ app.use(bodyParser.json({ limit: "30mb" }));
 app.use(bodyParser.urlencoded({ limit: "30mb", extended: true }));
 app.use(cors({ origin: process.env.FRONTEND_URL, credentials: true }));
 app.use(cookieParser());
+app.set("trust-proxy", 1);
 app.use(
   cookieSession({
     maxAge: 3 * 24 * 60 * 60 * 1000,
@@ -39,7 +40,6 @@ app.use(
     name: "oauth",
   })
 );
-app.set("trust-proxy", 1);
 app.use(passport.initialize());
 app.use(passport.session());
 
